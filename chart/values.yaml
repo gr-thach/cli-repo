@@ -1,0 +1,114 @@
+# Default values for api.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 4
+
+image:
+  repository: guardrails/api
+  tag: latest
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: docker-regcred
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: api.staging.k8s.guardrails.io
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: api-staging-k8s-guardrails-io
+      hosts:
+        - api.staging.k8s.guardrails.io
+
+ingressBadges:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rewrite-target: /v2/badges/$1
+  hosts:
+    - host: badges.staging.k8s.guardrails.io
+      paths:
+        - path: '/(.*)'
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: badges-staging-k8s-guardrails-io
+      hosts:
+        - badges.staging.k8s.guardrails.io
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 1000m
+  #   memory: 1024Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 1024Mi
+
+env:
+  # Additional environment variables
+  # Used to override or add the basic environment variables described in the external configmap
+  - name: SENTRY_DSN
+    value: 'https://a4ed61ce4b404b03b97618ded52dc6d5@sentry.io/1225444'
+  - name: NEW_RELIC_APP_NAME
+    value: 'api-staging'
+  - name: NEW_RELIC_ENABLED
+    value: 'true'
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector:
+  node-name: 'system'
+  node-os: 'linux'
+
+tolerations: []
+
+affinity: {}
